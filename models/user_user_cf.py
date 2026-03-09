@@ -14,7 +14,7 @@ from typing import Dict
 from utils.data import get_user_item_interaction_data, leave_k_out_split, UserItemMatrix
 
 
-logger = logging.getLogger("user-user-collaborative-filtering")
+logger = logging.getLogger("model:user-user-collaborative-filtering")
 
 
 def get_user_similarities(centered_user_item_matrix: torch.Tensor) -> torch.Tensor:
@@ -88,7 +88,7 @@ def evaluate_rating_predictions(
 
 
 if __name__ == "__main__":
-        # 1. Load data
+    # 1. Load data
     data_frame = get_user_item_interaction_data()
 
     num_users = len(data_frame.user_id.unique())
@@ -108,10 +108,9 @@ if __name__ == "__main__":
 
     centered_user_item_matrix = (user_item_matrix - user_means) * rated_mask
 
-    # 3. Calculate item similarities
+    # 2. Train & evaluate model
     item_similarities = get_user_similarities(centered_user_item_matrix)
 
-    # 6. Evaluate model
     rmse, mae = evaluate_rating_predictions(
         data_frame_test,
         centered_user_item_matrix,
@@ -120,4 +119,4 @@ if __name__ == "__main__":
         user_means
     )
 
-    logger.info(f"RMSE: {rmse:.4f}, MAE: {mae:.4f}")
+    logger.info(f"Test RMSE: {rmse:.4f}, Test MAE: {mae:.4f}")

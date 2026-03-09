@@ -110,10 +110,9 @@ if __name__ == "__main__":
 
     centered_user_item_matrix = (user_item_matrix - user_means) * rated_mask
 
-    # 3. Calculate item similarities
+    # 3. Train & evaluate model
     item_similarities = get_item_similarities(centered_user_item_matrix)
 
-    # 6. Evaluate model
     rmse, mae = evaluate_rating_predictions(
         data_frame_test,
         centered_user_item_matrix,
@@ -122,4 +121,4 @@ if __name__ == "__main__":
         user_means
     )
 
-    logger.info(f"RMSE: {rmse:.4f}, MAE: {mae:.4f}")
+    logger.info(f"Test RMSE: {rmse:.4f}, Test MAE: {mae:.4f}")
