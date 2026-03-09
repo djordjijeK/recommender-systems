@@ -31,5 +31,4 @@ logging_config = {
 dictConfig(logging_config)
 
 
-MOVIES_DATA_PATH = "data/movies.csv"
-RATINGS_DATA_PATH = "data/ratings.csv"
+USER_ITEM_INTERACTIONS_DATA_PATH = "data/user-item-interactions"
