@@ -12,7 +12,7 @@ import pandas as pd
 from torch import nn
 from typing import Any, Tuple
 from torch.utils.data import DataLoader
-from utils.data import get_user_item_interaction_data, leave_k_out_split, get_device, UserItemInteractions
+from utils.datav1 import get_user_item_interaction_data, leave_k_out_split, get_device, UserItemInteractions
 
 
 logger = logging.getLogger("model:matrix-factorization")

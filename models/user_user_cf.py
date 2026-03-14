@@ -11,7 +11,7 @@ import logging
 import pandas as pd
 
 from typing import Dict
-from utils.data import get_user_item_interaction_data, leave_k_out_split, UserItemMatrix
+from utils.datav1 import get_user_item_interaction_data, leave_k_out_split, UserItemMatrix
 
 
 logger = logging.getLogger("model:user-user-collaborative-filtering")

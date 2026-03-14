@@ -11,7 +11,7 @@ import logging
 from torch import nn
 from typing import Tuple
 from torch.utils.data import DataLoader
-from utils.data import get_user_item_interaction_data, leave_k_out_split, get_device, UserItemMatrix
+from utils.datav1 import get_user_item_interaction_data, leave_k_out_split, get_device, UserItemMatrix
 
 
 logger = logging.getLogger("model:autoencoder")
@@ -92,7 +92,7 @@ if __name__ == "__main__":
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-4)
     loss_fn = nn.MSELoss()
 
-    n_epochs = 250
+    n_epochs = 100
     for epoch in range(n_epochs):
         model.train()
 
