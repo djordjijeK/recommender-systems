@@ -2,9 +2,6 @@
 
 A PyTorch implementation of SASRec - Self-Attentive Sequential Recommendation (Kang & McAuley, 2018) - applied to movie recommendation using the MovieLens dataset.
 
-
-### What Is This?
-
 The goal is to predict which movie a user will watch next given their watch history. 
 Rather than treating all past interactions equally, SASRec uses a Transformer-style self-attention mechanism to identify which items in the user's history are most relevant to the next prediction - recent items often matter more, but the model learns this adaptively.
 
