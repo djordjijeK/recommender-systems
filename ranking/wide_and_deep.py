@@ -1,18 +1,18 @@
 import sys
-import logging
 from pathlib import Path
 
 root_dir = Path(__file__).resolve().parent.parent
 sys.path.append(str(root_dir))
 
-import config
+
+import logging
 
 import torch
+import config
 import pandas as pd
 
 from torch import nn
 from torch.utils.data import Dataset, DataLoader, Subset
-
 from utils.movies import get_data, get_train_val_test_split, AGE_MAP, OCCUPATION_MAP
 
 
@@ -84,6 +84,7 @@ class MovieLensDataset(Dataset):
     * ``deep_features``: 1-D float tensor whose first five columns are categorical IDs ``[user_id, movie_id, gender, age, occupation]`` followed by continuous features (genre flags and normalised release year).
     * ``rating``: scalar float tensor with the ground-truth star rating.
     """
+
     def __init__(self, wide_features: pd.DataFrame, deep_features: pd.DataFrame, ratings: pd.Series) -> None:
         if len(wide_features) != len(deep_features):
             raise ValueError(
@@ -116,6 +117,7 @@ class WideComponent(nn.Module):
     feature memorisation via the cross-product interaction terms baked into
     the input.
     """
+
     def __init__(self, in_features: int) -> None:
         super().__init__()
         self._linear = nn.Linear(in_features, out_features=1, bias=True)
@@ -132,6 +134,7 @@ class DeepComponent(nn.Module):
     up in separate embedding tables and concatenated with continuous features
     before being fed through a multi-layer perceptron.
     """
+
     def __init__(
         self,
         user_config: tuple[int, int],
@@ -224,6 +227,7 @@ class WideDeep(nn.Module):
             dropout=dropout,
         )
 
+
     def forward(
         self,
         wide_features: torch.Tensor,
@@ -252,13 +256,14 @@ class WideDeep(nn.Module):
 
 def evaluate_model(model: nn.Module, data_loader: DataLoader, loss_fn: nn.Module, device: torch.device) -> float:
     model.eval()
-    total_loss = 0.0
 
+    total_loss = 0.0
     with torch.no_grad():
-        for wide, deep, ratings in data_loader:
-            wide, deep, ratings = wide.to(device), deep.to(device), ratings.to(device)
-            preds = model(wide, deep)
-            total_loss += loss_fn(preds.squeeze(), ratings).item()
+        for wide_features, deep_features, ratings in data_loader:
+            wide_features, deep_features, ratings = wide_features.to(device), deep_features.to(device), ratings.to(device)
+            predictions = model(wide_features, deep_features)
+
+            total_loss += loss_fn(predictions.squeeze(), ratings).item()
 
     model.train()
 
@@ -275,23 +280,22 @@ def build_subsample_loader(dataset: Dataset, sample_size: int, batch_size: int) 
 
 def train(
     model: nn.Module,
+    loss_fn: nn.Module,
     train_dataset: Dataset,
     valid_dataset: Dataset,
-    *,
     epochs: int = 10,
     batch_size: int = 2048,
-    lr: float = 1e-3,
-    weight_decay: float = 1e-4,
-    train_eval_samples: int = 32_768,
+    learning_rate: float = 1e-3,
     eval_batch_size: int = 512,
+    train_eval_samples: int = 32_768,
     device: torch.device | None = None,
 ) -> nn.Module:
+     
     if device is None:
         device = torch.device("mps" if torch.mps.is_available() else "cpu")
 
     model = model.to(device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
-    loss_fn = nn.MSELoss()
+    optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     valid_loader = DataLoader(valid_dataset, batch_size=eval_batch_size, shuffle=False)
@@ -306,11 +310,11 @@ def train(
     for epoch in range(1, epochs + 1):
         model.train()
 
-        for wide, deep, ratings in train_loader:
-            wide, deep, ratings = wide.to(device), deep.to(device), ratings.to(device)
-            preds = model(wide, deep)
+        for wide_features, deep_features, ratings in train_loader:
+            wide_features, deep_features, ratings = wide_features.to(device), deep_features.to(device), ratings.to(device)
+            predictions = model(wide_features, deep_features)
 
-            loss = loss_fn(preds.squeeze(), ratings)
+            loss = loss_fn(predictions.squeeze(), ratings)
             
             optimizer.zero_grad()
             loss.backward()
@@ -359,10 +363,12 @@ if __name__ == "__main__":
         age_config=(int(data["age"].max()) + 1, 16),
         occupation_config=(int(data["occupation"].max()) + 1, 16),
         num_continuous_features=train_deep.shape[1] - 5,
-        dropout=0.05
+        dropout=0.1
     )
 
-    model = train(model,train_dataset, valid_dataset, epochs=20, batch_size=2048, lr=1e-3)
+    loss_function = nn.MSELoss()
+
+    model = train(model, loss_function, train_dataset, valid_dataset, epochs=20, batch_size=2048, learning_rate=1e-3)
 
     # Final evaluation on held-out test set
     device = torch.device("mps" if torch.mps.is_available() else "cpu")
