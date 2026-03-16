@@ -29,29 +29,16 @@ A dot product is taken against all item embeddings to produce a ranked list of c
 
 ### Training
 
-**Dataset & splits.** The MovieLens dataset is filtered to retain only users and movies with at least 17 interactions (applied iteratively until stable). 
+- Dataset & splits: The MovieLens dataset is filtered to retain only users and movies with at least 17 interactions (applied iteratively until stable). 
 The data is split chronologically per user: the most recent interaction is held out for testing, the second most recent for validation, and all earlier interactions form the training set.
 
 
-**Training objective.** The model is trained with **binary cross-entropy loss** over positive/negative pairs. 
+- Training objective: The model is trained with **binary cross-entropy loss** over positive/negative pairs. 
 For every position in the training sequence, the model scores the actual next item (positive) against a randomly sampled item the user has not seen (negative). 
 The loss pushes positive scores up and negative scores down.
 
 
-**Optimiser.** Adam with a learning rate of 1e-3, trained for 30 epochs with a batch size of 128.
-
-
-**Hyperparameters.**
-
-| Parameter | Value |
-|---|---|
-| Embedding dimension | 64 |
-| Context length | 128 |
-| Self-attention blocks | 4 |
-| Dropout | 0.15 |
-| Negatives per position (train) | 1 |
-| Negatives per user (eval) | 64 |
-
+- Optimiser: Adam with a learning rate of 1e-3, trained for 30 epochs with a batch size of 128.
 
 
 ### Evaluation
@@ -59,16 +46,17 @@ The loss pushes positive scores up and negative scores down.
 At evaluation time, each user's most recent held-out item is ranked against 64 randomly sampled unseen items (65 candidates total). 
 Two metrics are computed at cutoff k = 10:
 
-- **Hit@10** - the fraction of users for whom the ground-truth item appears in the top 10.
+- Hit@10 - the fraction of users for whom the ground-truth item appears in the top 10.
 
-- **NDCG@10** - normalised discounted cumulative gain, which rewards ranking the correct item higher within the top 10.
+- NDCG@10 - normalised discounted cumulative gain, which rewards ranking the correct item higher within the top 10.
+
 
 ### Results
 
 | Split | Hit@10 | NDCG@10 |
 |---|---|---|
 | Validation (epoch 30) | 0.5271 | 0.2948 |
-| **Test** | **0.5198** | **0.2923** |
+| Test | 0.5198 | 0.2923 |
 
 
 ## Reference
