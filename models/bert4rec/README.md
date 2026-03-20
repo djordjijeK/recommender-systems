@@ -67,14 +67,14 @@ The model is evaluated with a standard ranking setup for next-item recommendatio
 
 Results:
 
-- HR@1: 0.3829 — In 38.29% of cases, the model ranks the correct next movie at position 1 (best prediction).
+- HR@1: 0.3829 - In 38.29% of cases, the model ranks the correct next movie at position 1 (best prediction).
 
-- HR@5: 0.7056 — In 70.56% of cases, the correct movie appears within the top 5 predictions.
+- HR@5: 0.7056 - In 70.56% of cases, the correct movie appears within the top 5 predictions.
 
-- NDCG@5: 0.5558 — The model not only places the correct item in the top 5, but often ranks it closer to the top positions.
+- NDCG@5: 0.5558 - The model not only places the correct item in the top 5, but often ranks it closer to the top positions.
 
-- HR@10: 0.8124 — In 81.24% of cases, the correct movie appears within the top 10 predictions.
+- HR@10: 0.8124 - In 81.24% of cases, the correct movie appears within the top 10 predictions.
 
-- NDCG@10: 0.5905 — Within the top 10, the correct item is typically ranked high rather than near the bottom.
+- NDCG@10: 0.5905 - Within the top 10, the correct item is typically ranked high rather than near the bottom.
 
-- MRR: 0.5295 — On average, the correct item is ranked around 2nd place, indicating consistently strong ranking quality.
+- MRR: 0.5295 - On average, the correct item is ranked around 2nd place, indicating consistently strong ranking quality.
