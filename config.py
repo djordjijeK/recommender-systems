@@ -8,7 +8,7 @@ logging_config = {
 
     "formatters": {
         "standard": {
-            "format": "%(asctime)s [%(name)s] %(levelname)-4s - %(message)s",
+            "format": "%(asctime)s [%(name)s] %(levelname)-4s: %(message)s",
             "datefmt": "%Y-%m-%d %H:%M:%S"
         }
     },

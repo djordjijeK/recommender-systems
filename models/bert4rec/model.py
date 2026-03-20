@@ -42,11 +42,9 @@ class MultiHeadSelfAttention(nn.Module):
         padding_mask: torch.Tensor
     ) -> torch.Tensor:
         # Q, K, V -> (batch_size, num_heads, context_length, head_dim)
-        head_dim = Q.size(-1)
-        scale = math.sqrt(head_dim)
     
         # attention scores (batch_size, num_heads, context_length, context_length)
-        scores = torch.matmul(Q, K.transpose(-2, -1)) / scale
+        scores = torch.matmul(Q, K.transpose(-2, -1)) / math.sqrt(Q.size(-1))
     
         # zero out attention to PAD positions (set to -inf so softmax → 0)
         scores = scores.masked_fill(padding_mask, float("-inf"))
@@ -139,6 +137,19 @@ class BERT4Rec(nn.Module):
         self._output_projection = nn.Linear(n_dim, n_dim)
         self._output_bias = nn.Parameter(torch.zeros(vocab_size))
 
+        for module in self.modules():
+            if isinstance(module, nn.Linear):
+                nn.init.trunc_normal_(module.weight, mean=0.0, std=0.02)
+                if module.bias is not None:
+                    nn.init.zeros_(module.bias)
+            elif isinstance(module, nn.Embedding):
+                nn.init.trunc_normal_(module.weight, mean=0.0, std=0.02)
+                if module.padding_idx is not None:
+                    module.weight.data[module.padding_idx].zero_()
+            elif isinstance(module, nn.LayerNorm):
+                nn.init.ones_(module.weight)
+                nn.init.zeros_(module.bias) 
+
  
     def _make_pad_mask(self, tokens: torch.Tensor) -> torch.Tensor:
         return (tokens == self._pad_token).unsqueeze(1).unsqueeze(2)
@@ -155,17 +166,17 @@ class BERT4Rec(nn.Module):
  
         for transformer_layer in self._transformer_layers:
             embeddings = transformer_layer(embeddings, padding_mask) # (batch_size, context_length, n_dim)
- 
-        embeddings = F.gelu(self._output_projection(embeddings))  # (batch_size, context_length, n_dim) 
+
+        embeddings = self._output_projection(embeddings)  # (batch_size, context_length, n_dim) 
         logits = embeddings @ self._movie_embedding.weight.T + self._output_bias  # (batch_size, context_length, vocab_size)
  
         return logits
- 
- 
+    
+    
     @torch.no_grad()
     def recommend(
         self, 
-        tokens: torch.Tensor, # (batch_size, context_length)  sequence ending with [MASK]
+        tokens: torch.Tensor, # (batch_size, context_length) sequence ending with [MASK]
         k: int = 10
     ) -> torch.Tensor:
         logits = self.forward(tokens)  # (batch_size, context_length, vocab_size)
@@ -176,28 +187,3 @@ class BERT4Rec(nn.Module):
  
         return torch.topk(last_logits, k, dim=-1).indices  # (batch_size, k)
  
-
-    @torch.no_grad()
-    def score_candidates(
-        self,
-        tokens: torch.Tensor,  # (batch_size, context_length)
-        positive_movie: torch.Tensor,  # (batch_size,)
-        negative_movies: torch.Tensor,  # (batch_size, num_negatives)
-    ) -> dict[str, float]:
-         
-        logits = self.forward(tokens)  # (batch_size, context_length, vocab_size)
-        last_logits = logits[:, -1, :]  # (batch_size, vocab_size)
- 
-        pos_scores = last_logits.gather(1, positive_movie.unsqueeze(1))  # (batch_size, 1)
-        neg_scores = last_logits.gather(1, negative_movies)              # (batch_size, num_negatives)
- 
-        rank = (neg_scores >= pos_scores).sum(dim=-1) + 1                # (batch_size,) 1-indexed
- 
-        metrics: dict[str, float] = {}
-        for k in (1, 5, 10):
-            metrics[f"HR@{k}"]   = (rank <= k).float().mean().item()
-            metrics[f"NDCG@{k}"] = (1.0 / torch.log2(rank.float() + 1) * (rank <= k).float()).mean().item()
- 
-        metrics["MRR"] = (1.0 / rank.float()).mean().item()
-        
-        return metrics
