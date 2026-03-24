@@ -45,9 +45,7 @@ and the model must predict the missing movie. This implementation uses two maski
 
 ### Training Objective
 
-The model is trained to predict the original identity of masked items.
-
-For positions that are not masked, the target label is `0`, which is ignored in the loss. For positions that are masked, the target label is the true item.
+The model is trained to predict the original identity of masked items. For positions that are not masked, the target label is `0`, which is ignored in the loss. For positions that are masked, the target label is the true item.
 
 ### Inference
 
@@ -67,13 +65,13 @@ The model is evaluated with a standard ranking setup for next-item recommendatio
 
 Results:
 
-- HR@1: 0.3560 - In 36.29% of cases, the model ranks the correct next movie at position 1 (best prediction).
+- HR@1: 0.3560 - In 35.60% of cases, the model ranks the correct next movie at position 1 (best prediction).
 
-- HR@5: 0.6760 - In 67.53% of cases, the correct movie appears within the top 5 predictions.
+- HR@5: 0.6760 - In 67.60% of cases, the correct movie appears within the top 5 predictions.
 
 - NDCG@5: 0.5277 - The model not only places the correct item in the top 5, but often ranks it closer to the top positions.
 
-- HR@10: 0.7808 - In 77.15% of cases, the correct movie appears within the top 10 predictions.
+- HR@10: 0.7808 - In 78.08% of cases, the correct movie appears within the top 10 predictions.
 
 - NDCG@10: 0.5618 - Within the top 10, the correct item is typically ranked high rather than near the bottom.
 
@@ -81,7 +79,7 @@ Results:
 
 ### Training
 
-To train the model, run the following from the project root:
+To train and evaluate the model, run the following from the project root:
 
 ```
 python -m models.bert4rec.train
