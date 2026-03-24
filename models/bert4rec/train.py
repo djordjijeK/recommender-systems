@@ -76,8 +76,7 @@ def train(
     config: Config,
     train_dataset: BERT4RecTrainDataset,
     valid_dataset: BERT4RecEvalDataset
-) -> BERT4Rec:
-     
+) -> BERT4Rec: 
     device = torch.device(config.device)
 
     train_data_loader = DataLoader(
