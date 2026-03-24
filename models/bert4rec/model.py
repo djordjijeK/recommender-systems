@@ -160,7 +160,7 @@ class BERT4Rec(nn.Module):
 
         positions = torch.arange(context_length, device=tokens.device).unsqueeze(0)  # (1, context_length)
         embeddings = self._movie_embedding(tokens) + self._positional_embedding(positions)
-        embeddings = self._embedding_normalization(self._embedding_dropout(embeddings))  # (batch_size, context_length, n_dim)
+        embeddings = self._embedding_dropout(self._embedding_normalization(embeddings))  # (batch_size, context_length, n_dim)
  
         padding_mask = self._make_pad_mask(tokens)  # (batch_size, 1, 1, context_length)
  

@@ -1,11 +1,3 @@
-import sys
-from pathlib import Path
-
-root_dir = Path(__file__).resolve().parent.parent
-sys.path.append(str(root_dir))
-sys.path.append(str(root_dir.parent))
-
-
 import math
 import torch
 import config
@@ -13,10 +5,9 @@ import logging
 import torch.nn.functional as F
 
 from dataclasses import dataclass
-from bert4rec.model import BERT4Rec
+from .model import BERT4Rec
 from torch.utils.data import DataLoader
-from torch.optim.lr_scheduler import LambdaLR
-from bert4rec.data import build_sequences, BERT4RecTrainDataset, BERT4RecEvalDataset
+from .data import build_sequences, BERT4RecTrainDataset, BERT4RecEvalDataset
 
 
 logger = logging.getLogger("model:BERT4Rec")

@@ -67,14 +67,22 @@ The model is evaluated with a standard ranking setup for next-item recommendatio
 
 Results:
 
-- HR@1: 0.3629 - In 36.29% of cases, the model ranks the correct next movie at position 1 (best prediction).
+- HR@1: 0.3560 - In 36.29% of cases, the model ranks the correct next movie at position 1 (best prediction).
 
-- HR@5: 0.6753 - In 67.53% of cases, the correct movie appears within the top 5 predictions.
+- HR@5: 0.6760 - In 67.53% of cases, the correct movie appears within the top 5 predictions.
 
-- NDCG@5: 0.53 - The model not only places the correct item in the top 5, but often ranks it closer to the top positions.
+- NDCG@5: 0.5277 - The model not only places the correct item in the top 5, but often ranks it closer to the top positions.
 
-- HR@10: 0.7715 - In 77.15% of cases, the correct movie appears within the top 10 predictions.
+- HR@10: 0.7808 - In 77.15% of cases, the correct movie appears within the top 10 predictions.
 
-- NDCG@10: 0.5614 - Within the top 10, the correct item is typically ranked high rather than near the bottom.
+- NDCG@10: 0.5618 - Within the top 10, the correct item is typically ranked high rather than near the bottom.
 
-- MRR: 0.5044 - On average, the correct item is ranked around 2nd place, indicating consistently strong ranking quality.
+- MRR: 0.5017 - On average, the correct item is ranked around 2nd place, indicating consistently strong ranking quality.
+
+### Training
+
+To train the model, run the following from the project root:
+
+```
+python -m models.bert4rec.train
+```
