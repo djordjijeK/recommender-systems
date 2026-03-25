@@ -167,7 +167,7 @@ class BERT4RecEvalDataset(Dataset):
         # Only evaluate users that have both a training history and a target
         self._users = sorted(set(train_tokens.keys()) & set(target_tokens.keys()))
 
-        self._negatives = self._precompute_negatives()  # ← add this
+        self._negatives = self._precompute_negatives() 
  
 
     def __len__(self) -> int:
