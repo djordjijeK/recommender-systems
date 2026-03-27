@@ -1,6 +1,6 @@
 ## Wide & Deep: Wide & Deep Learning for Recommender Systems
 
-An educational implementation of **Wide & Deep** for recommendation in PyTorch, adapted for ranking evaluation comparable to BERT4Rec and SASRec.
+An educational implementation of **Wide & Deep** for recommendation in PyTorch, adapted for ranking evaluation.
 
 This project aims to capture the core idea of Wide & Deep faithfully rather than reproduce the original paper's production system. The goal is understanding the model and implementing it in a way that is clear, readable, and true to the paper's core intuition.
 
@@ -34,7 +34,7 @@ Unlike BERT4Rec and SASRec, Wide & Deep does not model the order of user interac
 
 ### Evaluation
 
-The model is evaluated with the same ranking setup as BERT4Rec and SASRec. For each user, the model ranks:
+The model is evaluated with the same ranking setup as BERT4Rec, SASRec, and NCF. For each user, the model ranks:
 
 - 1 positive item - the last movie the user interacted with (held out)
 
