@@ -29,6 +29,3 @@ logging_config = {
 }
 
 dictConfig(logging_config)
-
-
-USER_ITEM_INTERACTIONS_DATA_PATH = "data/user-item-interactions"

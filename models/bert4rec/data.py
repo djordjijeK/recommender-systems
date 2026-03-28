@@ -25,7 +25,7 @@ def build_sequences(min_interactions: int = 5) -> tuple[dict[int, list[int]], di
             break
  
     # IDs start at 1 so that 0 is free for PAD.
-    user_map  = {user_id: index + 1 for index, user_id in enumerate(sorted(data["user_id"].unique()))}
+    user_map = {user_id: index + 1 for index, user_id in enumerate(sorted(data["user_id"].unique()))}
     movie_map = {movie_id: index + 1 for index, movie_id in enumerate(sorted(data["movie_id"].unique()))}
 
     data["user_id"] = data["user_id"].map(user_map)

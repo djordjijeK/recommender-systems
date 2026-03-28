@@ -1,6 +1,6 @@
-from pathlib import Path
-
 import pandas as pd
+
+from pathlib import Path
 
 
 _BASE_DIR = Path(__file__).resolve().parent.parent
@@ -87,6 +87,7 @@ def get_users(path: Path = USERS_DATA_PATH) -> pd.DataFrame:
 
     return users
 
+
 def get_movies(path: Path = MOVIES_DATA_PATH) -> pd.DataFrame:
     movies = pd.read_csv(
         path,
@@ -101,12 +102,13 @@ def get_movies(path: Path = MOVIES_DATA_PATH) -> pd.DataFrame:
     movies["release_year"] = movies["title"].str.extract(r"\((\d{4})\)").astype(int)
 
     for genre in ALL_GENRES:
-        col = "genre_" + genre.lower().replace("-", "_").replace("'", "")
-        movies[col] = movies["genres"].str.contains(genre, regex=False).astype(int)
+        column = "genre_" + genre.lower().replace("-", "_").replace("'", "")
+        movies[column] = movies["genres"].str.contains(genre, regex=False).astype(int)
 
     movies.drop(columns=["title", "genres"], inplace=True)
 
     return movies
+
 
 def get_ratings(path: Path = RATINGS_DATA_PATH) -> pd.DataFrame:
     ratings = pd.read_csv(
@@ -117,52 +119,18 @@ def get_ratings(path: Path = RATINGS_DATA_PATH) -> pd.DataFrame:
         names=["user_id", "movie_id", "rating", "timestamp"],
     )
 
-    ratings["user_id"]  -= 1
+    ratings["user_id"] -= 1
     ratings["movie_id"] -= 1
 
     return ratings
 
+
 def get_data() -> pd.DataFrame:
-    users   = get_users()
-    movies  = get_movies()
+    users = get_users()
+    movies = get_movies()
     ratings = get_ratings()
 
-    data = ratings.merge(users,  on="user_id",  how="left")
+    data = ratings.merge(users, on="user_id", how="left")
     data = data.merge(movies, on="movie_id", how="left")
 
     return data
-
-def get_train_val_test_split(data: pd.DataFrame, validation_size: int = 5, test_size: int = 10) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """
-    Split interactions into train / validation / test sets.
-
-    Splitting strategy: for each user, the *N* most-recent interactions
-    (by timestamp) go to test, the next *M* to validation, and everything
-    older than that to train.
-
-    Args:
-        data: Merged dataset returned by :func:`get_data`.
-        val_size: Number of interactions per user held out for validation.
-        test_size: Number of most-recent interactions per user held out for test.
-
-    Returns:
-        A ``(train, val, test)`` tuple of non-overlapping DataFrames.
-    """
-    data = data.sort_values(["user_id", "timestamp"]).reset_index(drop=True)
-
-    data["_rank"] = (
-        data.groupby("user_id")["timestamp"]
-        .rank(method="first", ascending=False)
-        .astype(int)
-    )
-
-    test  = data[data["_rank"] <= test_size]
-    val   = data[(data["_rank"] > test_size) & (data["_rank"] <= test_size + validation_size)]
-    train = data[data["_rank"] > test_size + validation_size]
-
-    drop = ["_rank"]
-    return (
-        train.drop(columns=drop),
-        val.drop(columns=drop),
-        test.drop(columns=drop),
-    )

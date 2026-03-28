@@ -1,122 +1,139 @@
-import sys
-from pathlib import Path
-
-root_dir = Path(__file__).resolve().parent.parent
-sys.path.append(str(root_dir))
-
-
-import math
+import random
 import torch
 import logging
 import pandas as pd
 
-from typing import Dict
-from utils.datav1 import get_user_item_interaction_data, leave_k_out_split, UserItemMatrix
+from config import *
+from load.movies import get_ratings
 
 
 logger = logging.getLogger("model:user-user-collaborative-filtering")
 
 
-def get_user_similarities(centered_user_item_matrix: torch.Tensor) -> torch.Tensor:
-    norm = torch.norm(centered_user_item_matrix, p=2, dim=1, keepdim=True) + 1e-8
-    normalized_matrix = centered_user_item_matrix / norm
-
-    similarity_matrix = torch.mm(normalized_matrix, normalized_matrix.t()) 
-
-    return similarity_matrix.fill_diagonal_(0)
+def leave_one_out_split(ratings: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    ratings = ratings.sort_values("timestamp")
+    test = ratings.groupby("user_id").tail(1)
+    train = ratings.drop(test.index)
+    return train, test
 
 
-def predict_rating(
-    user_index: int, 
-    movie_index: int, 
-    centered_user_item_matrix: torch.Tensor, 
-    user_item_matrix: torch.Tensor, 
+def build_user_movie_matrix(train: pd.DataFrame, num_users: int, num_movies: int) -> torch.Tensor:
+    matrix = torch.zeros(num_users, num_movies)
+    user_ids = torch.tensor(train["user_id"].values, dtype=torch.long)
+    movie_ids = torch.tensor(train["movie_id"].values, dtype=torch.long)
+    ratings = torch.tensor(train["rating"].values, dtype=torch.float32)
+    matrix[user_ids, movie_ids] = ratings
+    return matrix
+
+
+def compute_user_means(user_movie_matrix: torch.Tensor) -> torch.Tensor:
+    rated_mask = (user_movie_matrix > 0).float()
+    user_sums = user_movie_matrix.sum(dim=1)
+    user_counts = rated_mask.sum(dim=1).clamp(min=1)
+    return user_sums / user_counts
+
+
+def center_matrix(user_movie_matrix: torch.Tensor, user_means: torch.Tensor) -> torch.Tensor:
+    rated_mask = (user_movie_matrix > 0).float()
+    return (user_movie_matrix - user_means.unsqueeze(1)) * rated_mask
+
+
+def get_user_similarities(centered_user_movie_matrix: torch.Tensor) -> torch.Tensor:
+    norms = centered_user_movie_matrix.norm(p=2, dim=1, keepdim=True).clamp(min=1e-8)
+    normalized = centered_user_movie_matrix / norms
+    similarities = normalized @ normalized.t()
+    similarities.fill_diagonal_(0)
+    return similarities
+
+
+def score_movie(
+    user_id: int,
+    movie_id: int,
+    centered_user_movie_matrix: torch.Tensor,
+    user_movie_matrix: torch.Tensor,
     user_similarities: torch.Tensor,
-    user_means: torch.Tensor        
+    user_means: torch.Tensor,
 ) -> float:
-    similarity_scores = user_similarities[user_index - 1]
-    movie_deviations = centered_user_item_matrix[:, movie_index - 1]
+    similarities = user_similarities[user_id]
+    deviations = centered_user_movie_matrix[:, movie_id]
+    rated_mask = (user_movie_matrix[:, movie_id] > 0).float()
 
-    rated_mask = (user_item_matrix[:, movie_index - 1] > 0).float()
+    weighted_sum = torch.dot(similarities * rated_mask, deviations)
+    weight_total = torch.dot(similarities.abs(), rated_mask)
 
-    weighted_sum = torch.dot(similarity_scores * rated_mask, movie_deviations)
-    sum_of_weights = torch.dot(torch.abs(similarity_scores), rated_mask)
+    if weight_total < 1e-7:
+        return user_means[user_id].item()
 
-    target_user_mean = user_means[user_index - 1].item()
-
-    if sum_of_weights < 1e-7:
-        return target_user_mean
-
-    prediction = target_user_mean + (weighted_sum / sum_of_weights)
-    
-    return prediction.item()
+    return (user_means[user_id] + weighted_sum / weight_total).item()
 
 
-def evaluate_rating_predictions(
-    data_frame_test: pd.DataFrame, 
-    centered_matrix: torch.Tensor,
-    user_item_matrix: torch.Tensor, 
-    user_similarities: torch.Tensor, 
-    user_means: torch.Tensor
-):
-    squared_errors = []
-    absolute_errors =[]
+def evaluate(
+    test: pd.DataFrame,
+    train: pd.DataFrame,
+    centered_user_movie_matrix: torch.Tensor,
+    user_movie_matrix: torch.Tensor,
+    user_similarities: torch.Tensor,
+    user_means: torch.Tensor,
+    all_movie_ids: list[int],
+    num_negatives: int = 100,
+) -> dict[str, float]:
+    rng = random.Random(1347)
+    user_train_movies = train.groupby("user_id")["movie_id"].apply(set).to_dict()
 
-    for row in data_frame_test.itertuples():
-        user_index = int(row.user_id)
-        item_index = int(row.item_id)
-        
-        true_rating = float(row.rating)
+    all_ranks = []
+    for row in test.itertuples():
+        user_id, positive_movie_id = row.user_id, row.movie_id
+        seen = user_train_movies.get(user_id, set()) | {positive_movie_id}
 
-        predicted_rating = predict_rating(
-            user_index, 
-            item_index, 
-            centered_matrix, 
-            user_item_matrix, 
-            user_similarities,
-            user_means
-        )
+        negative_movies: list[int] = []
+        while len(negative_movies) < num_negatives:
+            candidate = rng.choice(all_movie_ids)
+            if candidate not in seen:
+                negative_movies.append(candidate)
+                seen.add(candidate)
 
-        if not math.isnan(predicted_rating):
-            squared_errors.append((true_rating - predicted_rating) ** 2)
-            absolute_errors.append(abs(true_rating - predicted_rating))
+        candidates = [positive_movie_id] + negative_movies
+        scores = [
+            score_movie(user_id, movie_id, centered_user_movie_matrix, user_movie_matrix, user_similarities, user_means)
+            for movie_id in candidates
+        ]
 
-    rmse = math.sqrt(sum(squared_errors) / len(squared_errors)) if squared_errors else 0.0
-    mae = sum(absolute_errors) / len(absolute_errors) if absolute_errors else 0.0
+        positive_score = scores[0]
+        rank = sum(1 for s in scores[1:] if s >= positive_score) + 1
+        all_ranks.append(rank)
 
-    return rmse, mae
+    ranks = torch.tensor(all_ranks, dtype=torch.float)
+
+    metrics: dict[str, float] = {}
+    for k in (1, 5, 10):
+        hit = (ranks <= k).float()
+        metrics[f"HR@{k}"] = hit.mean().item()
+        if k != 1:
+            metrics[f"NDCG@{k}"] = (hit / torch.log2(ranks + 1)).mean().item()
+    metrics["MRR"] = (1.0 / ranks).mean().item()
+
+    return metrics
 
 
 if __name__ == "__main__":
-    # 1. Load data
-    data_frame = get_user_item_interaction_data()
+    ratings = get_ratings()
 
-    num_users = len(data_frame.user_id.unique())
-    num_items = len(data_frame.item_id.unique())
+    num_users = ratings["user_id"].max() + 1
+    num_movies = ratings["movie_id"].max() + 1
 
-    data_frame_train, data_frame_test = leave_k_out_split(data_frame, random_state=1347)
+    train, test = leave_one_out_split(ratings)
 
-    user_item_interactions_dataset = UserItemMatrix(data_frame_train, num_users, num_items)
+    # 1. Build user-movie matrix and center by user means
+    user_movie_matrix = build_user_movie_matrix(train, num_users, num_movies)
+    user_means = compute_user_means(user_movie_matrix)
+    centered_matrix = center_matrix(user_movie_matrix, user_means)
 
-    # 2. Compute user means and center the matrix by user means
-    user_item_matrix = user_item_interactions_dataset._user_item_matrix
+    # 2. Compute user-user similarities
+    user_similarities = get_user_similarities(centered_matrix)
 
-    rated_mask = (user_item_matrix > 0).float()
-    user_sums = user_item_matrix.sum(dim=1, keepdim=True)
-    user_counts = rated_mask.sum(dim=1, keepdim=True)
-    user_means = user_sums / user_counts
+    # 3. Evaluate
+    all_movie_ids = ratings["movie_id"].unique().tolist()
 
-    centered_user_item_matrix = (user_item_matrix - user_means) * rated_mask
-
-    # 2. Train & evaluate model
-    item_similarities = get_user_similarities(centered_user_item_matrix)
-
-    rmse, mae = evaluate_rating_predictions(
-        data_frame_test,
-        centered_user_item_matrix,
-        user_item_matrix,
-        item_similarities,
-        user_means
-    )
-
-    logger.info(f"Test RMSE: {rmse:.4f}, Test MAE: {mae:.4f}")
+    metrics = evaluate(test, train, centered_matrix, user_movie_matrix, user_similarities, user_means, all_movie_ids)
+    metrics_str = " | ".join(f"{k}: {v:.4f}" for k, v in metrics.items())
+    logger.info(f"Test metrics - {metrics_str}")
