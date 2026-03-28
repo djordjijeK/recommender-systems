@@ -173,17 +173,3 @@ class BERT4Rec(nn.Module):
         return logits
     
     
-    @torch.no_grad()
-    def recommend(
-        self, 
-        tokens: torch.Tensor, # (batch_size, context_length) sequence ending with [MASK]
-        k: int = 10
-    ) -> torch.Tensor:
-        logits = self.forward(tokens)  # (batch_size, context_length, vocab_size)
-        last_logits = logits[:, -1, :]  # (batch_size, vocab_size)
- 
-        last_logits[:, self._pad_token] = float("-inf")
-        last_logits[:, self._mask_token] = float("-inf")
- 
-        return torch.topk(last_logits, k, dim=-1).indices  # (batch_size, k)
- 

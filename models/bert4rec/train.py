@@ -137,7 +137,7 @@ def train(
 if __name__ == "__main__":
     config = Config()
 
-    train_tokens, valid_tokens, test_tokens, num_users, num_movies = build_sequences(min_interactions=config.min_interactions)
+    train_tokens, valid_tokens, test_tokens, _, num_movies = build_sequences(min_interactions=config.min_interactions)
 
     train_dataset = BERT4RecTrainDataset(
         train_tokens = train_tokens,

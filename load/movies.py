@@ -10,40 +10,6 @@ MOVIES_DATA_PATH = _BASE_DIR / "data" / "movies.dat"
 RATINGS_DATA_PATH = _BASE_DIR / "data" / "ratings.dat"
 
 
-AGE_MAP: dict[int, str] = {
-    0: "1-17",
-    1: "18-24",
-    2: "25-34",
-    3: "35-44",
-    4: "45-49",
-    5: "50-55",
-    6: "56-100",
-}
-
-OCCUPATION_MAP: dict[int, str] = {
-    0:  "other",
-    1:  "academic",
-    2:  "artist",
-    3:  "clerical",
-    4:  "grad_student",
-    5:  "customer_service",
-    6:  "healthcare",
-    7:  "executive",
-    8:  "farmer",
-    9:  "homemaker",
-    10: "k12_student",
-    11: "lawyer",
-    12: "programmer",
-    13: "retired",
-    14: "sales",
-    15: "scientist",
-    16: "self_employed",
-    17: "engineer",
-    18: "tradesman",
-    19: "unemployed",
-    20: "writer",
-}
-
 GENDER_MAP: dict[str, int] = {"M": 0, "F": 1}
 
 ALL_GENRES: list[str] = [

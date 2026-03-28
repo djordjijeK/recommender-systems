@@ -109,7 +109,6 @@ class BERT4RecTrainDataset(Dataset):
         labels = [0] * padding_length + labels
  
         return {
-            "user_id": torch.tensor(user, dtype=torch.long),
             "tokens": torch.tensor(tokens, dtype=torch.long),
             "labels": torch.tensor(labels, dtype=torch.long)
         }
@@ -184,7 +183,6 @@ class BERT4RecEvalDataset(Dataset):
         tokens = [0] * padding_length + tokens
   
         return {
-            "user_id": torch.tensor(user, dtype=torch.long),
             "tokens": torch.tensor(tokens, dtype=torch.long),
             "positive_movie": torch.tensor(positive_target_tokens[0], dtype=torch.long),
             "negative_movies": torch.tensor(self._negatives[user], dtype=torch.long)
